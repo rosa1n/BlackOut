@@ -378,14 +378,6 @@ public class AutoPvp extends BlackOutModule {
 
         shouldSuicide = updateSuicide();
 
-        if (shouldSuicide) {
-            if (!Modules.get().isActive(Suicide.class))
-                Modules.get().get(Suicide.class).toggle();
-        } else {
-            if (Modules.get().isActive(Suicide.class))
-                Modules.get().get(Suicide.class).toggle();
-        }
-
         eatUpdate();
 
         if (rotate.get()) {

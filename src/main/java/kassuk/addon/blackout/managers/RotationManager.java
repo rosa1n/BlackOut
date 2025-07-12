@@ -76,7 +76,7 @@ public class RotationManager {
                 updateNextRotation();
 
                 if (rotated) {
-                    mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.LookAndOnGround(next[0], next[1], Managers.ON_GROUND.isOnGround()));
+                    mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.LookAndOnGround(next[0], next[1], Managers.ON_GROUND.isOnGround(), mc.player.horizontalCollision));
                 }
             }
         }
@@ -90,7 +90,7 @@ public class RotationManager {
         timer -= event.frameTime;
         if (timer > 0 && target != null && lastDir != null) {
             if (SettingUtils.shouldVanillaRotate()) {
-                float tickDelta = mc.getRenderTickCounter().getTickDelta(true);
+                float tickDelta = mc.getRenderTickCounter().getDynamicDeltaTicks();
                 mc.player.setYaw(MathHelper.lerpAngleDegrees(tickDelta, prevDir[0], currentDir[0]));
                 mc.player.setPitch(MathHelper.lerp(tickDelta, prevDir[1], currentDir[1]));
             }
@@ -113,10 +113,10 @@ public class RotationManager {
         updateNextRotation();
 
         if (rotated) {
-            return new PlayerMoveC2SPacket.Full(packet.getX(0), packet.getY(0), packet.getZ(0), next[0], next[1], packet.isOnGround());
+            return new PlayerMoveC2SPacket.Full(packet.getX(0), packet.getY(0), packet.getZ(0), next[0], next[1], packet.isOnGround(), packet.horizontalCollision());
         }
 
-        return new PlayerMoveC2SPacket.PositionAndOnGround(packet.getX(0), packet.getY(0), packet.getZ(0), packet.isOnGround());
+        return new PlayerMoveC2SPacket.PositionAndOnGround(packet.getX(0), packet.getY(0), packet.getZ(0), packet.isOnGround(), packet.horizontalCollision());
     }
 
     public PlayerMoveC2SPacket onPositionOnGround(PlayerMoveC2SPacket.PositionAndOnGround packet) {
@@ -130,7 +130,7 @@ public class RotationManager {
         updateNextRotation();
 
         if (rotated) {
-            return new PlayerMoveC2SPacket.Full(packet.getX(0), packet.getY(0), packet.getZ(0), next[0], next[1], packet.isOnGround());
+            return new PlayerMoveC2SPacket.Full(packet.getX(0), packet.getY(0), packet.getZ(0), next[0], next[1], packet.isOnGround(), packet.horizontalCollision());
         }
 
         return packet;
@@ -147,10 +147,10 @@ public class RotationManager {
         updateNextRotation();
 
         if (rotated) {
-            return new PlayerMoveC2SPacket.LookAndOnGround(next[0], next[1], packet.isOnGround());
+            return new PlayerMoveC2SPacket.LookAndOnGround(next[0], next[1], packet.isOnGround(), packet.horizontalCollision());
         }
         if (packet.isOnGround() != Managers.ON_GROUND.isOnGround()) {
-            return new PlayerMoveC2SPacket.OnGroundOnly(packet.isOnGround());
+            return new PlayerMoveC2SPacket.OnGroundOnly(packet.isOnGround(), packet.horizontalCollision());
         }
 
         return null;
@@ -167,7 +167,7 @@ public class RotationManager {
         updateNextRotation();
 
         if (rotated) {
-            return new PlayerMoveC2SPacket.LookAndOnGround(next[0], next[1], packet.isOnGround());
+            return new PlayerMoveC2SPacket.LookAndOnGround(next[0], next[1], packet.isOnGround(), packet.horizontalCollision());
         }
 
         return packet;
@@ -355,11 +355,10 @@ public class RotationManager {
         args.set(1, prevDir[0]);
         args.set(2, currentDir[0]);
     }
-    public void setPitch(Args args) {
+    public void setPitch() {
         if (!shouldRotate) {return;}
 
-        args.set(1, prevDir[1]);
-        args.set(2, currentDir[1]);
+        mc.player.setPitch(MathHelper.lerpAngleDegrees(1.0f, prevDir[1], currentDir[1]));
     }
 
     private static class Target {}

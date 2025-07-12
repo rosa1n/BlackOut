@@ -309,16 +309,8 @@ public class ScaffoldPlus extends BlackOutModule {
                             switch (switchMode.get()) {
                                 case Silent, Normal -> {
                                     obsidian = hotbar.count();
-                                    InvUtils.swap(hotbar.slot(), true);
+                                    BOInvUtils.swap(hotbar.slot());
                                     block = ((BlockItem) mc.player.getInventory().getStack(hotbar.slot()).getItem()).getBlock();
-                                }
-                                case InvSwitch -> {
-                                    obsidian = BOInvUtils.invSwitch(inventory.slot()) ? inventory.count() : -1;
-                                    block = ((BlockItem) mc.player.getInventory().getStack(inventory.slot()).getItem()).getBlock();
-                                }
-                                case PickSilent -> {
-                                    obsidian = BOInvUtils.pickSwitch(inventory.slot()) ? inventory.count() : -1;
-                                    block = ((BlockItem) mc.player.getInventory().getStack(inventory.slot()).getItem()).getBlock();
                                 }
                             }
                         }
@@ -338,8 +330,6 @@ public class ScaffoldPlus extends BlackOutModule {
                         if (hand == null) {
                             switch (switchMode.get()) {
                                 case Silent -> InvUtils.swapBack();
-                                case PickSilent -> BOInvUtils.pickSwapBack();
-                                case InvSwitch -> BOInvUtils.swapBack();
                             }
                         }
                     }
@@ -355,16 +345,16 @@ public class ScaffoldPlus extends BlackOutModule {
     void yVel() {
         if (!tower.get()) return;
 
-        if (mc.options.jumpKey.isPressed() && mc.player.input.movementForward == 0 && mc.player.input.movementSideways == 0) {
+        if (mc.options.jumpKey.isPressed() && mc.player.forwardSpeed == 0 && mc.player.sidewaysSpeed == 0) {
             if (mc.player.isOnGround() || jumpProgress == 3) {
                 jumpProgress = 0;
             }
 
             if (jumpProgress > -1) {
                 if (jumpProgress < 3) {
-                    ((IVec3d) motion).setXZ(0, 0);
-                    ((IVec3d) motion).setY(velocities[jumpProgress]);
-                    ((IVec3d) mc.player.getVelocity()).setY(velocities[jumpProgress]);
+                    ((IVec3d) motion).meteor$setXZ(0, 0);
+                    ((IVec3d) motion).meteor$setY(velocities[jumpProgress]);
+                    ((IVec3d) mc.player.getVelocity()).meteor$setY(velocities[jumpProgress]);
                     jumpProgress++;
                 }
             }

@@ -242,8 +242,8 @@ public class RangeSettings extends BlackOutModule {
             Vec3d pPos = mc.player.getPos();
             switch (placeRangeFrom.get()) {
                 case Middle ->
-                    ((IVec3d) from).set((pBB.minX + pBB.maxX) / 2, (pBB.minY + pBB.maxY) / 2, (pBB.minZ + pBB.maxZ) / 2);
-                case Feet -> ((IVec3d) from).set(pPos.x, pPos.y, pPos.z);
+                    ((IVec3d) from).meteor$set((pBB.minX + pBB.maxX) / 2, (pBB.minY + pBB.maxY) / 2, (pBB.minZ + pBB.maxZ) / 2);
+                case Feet -> ((IVec3d) from).meteor$set(pPos.x, pPos.y, pPos.z);
             }
         }
 
@@ -295,7 +295,7 @@ public class RangeSettings extends BlackOutModule {
             from = mc.player.getEyePos();
             switch (attackRangeFrom.get()) {
                 case Middle ->
-                    ((IVec3d) from).set((pBB.minX + pBB.maxX) / 2, (pBB.minY + pBB.maxY) / 2, (pBB.minZ + pBB.maxZ) / 2);
+                    ((IVec3d) from).meteor$set((pBB.minX + pBB.maxX) / 2, (pBB.minY + pBB.maxY) / 2, (pBB.minZ + pBB.maxZ) / 2);
                 case Feet -> from = mc.player.getPos();
             }
         } else {
@@ -344,12 +344,12 @@ public class RangeSettings extends BlackOutModule {
         }
 
         if (dist.getZ() > 0.0) {
-            ((IVec3d) rangePos).setXZ(rangePos.x, rangePos.z + halfWidth);
+            ((IVec3d) rangePos).meteor$setXZ(rangePos.x, rangePos.z + halfWidth);
         } else if (dist.getZ() < 0.0) {
-            ((IVec3d) rangePos).setXZ(rangePos.x, rangePos.z - halfWidth);
+            ((IVec3d) rangePos).meteor$setXZ(rangePos.x, rangePos.z - halfWidth);
         } else if (dist.getX() > 0.0) {
-            ((IVec3d) rangePos).setXZ(rangePos.x + halfWidth, rangePos.z);
-        } else ((IVec3d) rangePos).setXZ(rangePos.x - halfWidth, rangePos.z);
+            ((IVec3d) rangePos).meteor$setXZ(rangePos.x + halfWidth, rangePos.z);
+        } else ((IVec3d) rangePos).meteor$setXZ(rangePos.x - halfWidth, rangePos.z);
 
 
         Vec3d vec2 = rangePos.subtract(startPos);
@@ -404,8 +404,8 @@ public class RangeSettings extends BlackOutModule {
             from = mc.player.getEyePos();
             switch (miningRangeFrom.get()) {
                 case Middle ->
-                    ((IVec3d) from).set((pBB.minX + pBB.maxX) / 2, (pBB.minY + pBB.maxY) / 2, (pBB.minX + pBB.maxX) / 2);
-                case Feet -> ((IVec3d) from).set(pPos.x, pPos.y, pPos.z);
+                    ((IVec3d) from).meteor$set((pBB.minX + pBB.maxX) / 2, (pBB.minY + pBB.maxY) / 2, (pBB.minX + pBB.maxX) / 2);
+                case Feet -> ((IVec3d) from).meteor$set(pPos.x, pPos.y, pPos.z);
             }
         }
 

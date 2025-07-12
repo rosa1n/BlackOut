@@ -1,7 +1,9 @@
 package kassuk.addon.blackout.modules;
 
+import com.google.common.io.Files;
 import kassuk.addon.blackout.BlackOut;
 import kassuk.addon.blackout.BlackOutModule;
+import meteordevelopment.meteorclient.MeteorClient;
 import meteordevelopment.meteorclient.events.packets.PacketEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.settings.*;
@@ -13,6 +15,9 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.network.packet.s2c.play.EntityStatusS2CPacket;
 
+import java.io.File;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
@@ -89,6 +94,8 @@ public class AutoEz extends BlackOutModule {
     private boolean lastState;
     private String name = null;
     private final List<Message> messageQueue = new LinkedList<>();
+    private final List<String> deathList = new ArrayList<>();
+    private final List<String> popList = new ArrayList<>();
     private int timer = 0;
 
     // credits to exhibition for these messages
@@ -281,6 +288,7 @@ public class AutoEz extends BlackOutModule {
     @Override
     public void onActivate() {
         super.onActivate();
+        Path.of("./meteor-client/pop.txt");
         lastState = false;
         lastNum = -1;
     }
@@ -302,12 +310,12 @@ public class AutoEz extends BlackOutModule {
             } else lastState = false;
 
             if (timer >= tickDelay.get() && !messageQueue.isEmpty()) {
-                Message msg = messageQueue.get(0);
+                Message msg = messageQueue.getFirst();
                 ChatUtils.sendPlayerMsg(msg.message);
                 timer = 0;
 
                 if (msg.kill) messageQueue.clear();
-                else messageQueue.remove(0);
+                else messageQueue.removeFirst();
             }
         }
     }
@@ -318,7 +326,7 @@ public class AutoEz extends BlackOutModule {
             // Pop
             if (packet.getStatus() == 35) {
                 Entity entity = packet.getEntity(mc.world);
-                if (pop.get() && mc.player != null && mc.world != null && entity instanceof PlayerEntity) {
+                if (pop.get() && mc.player != null && mc.world != null && entity instanceof PlayerEntity player) {
                     if (entity != mc.player && !Friends.get().isFriend((PlayerEntity) entity) &&
                         mc.player.getPos().distanceTo(entity.getPos()) <= range.get()) {
                         sendPopMessage(entity.getName().getString());
@@ -348,7 +356,7 @@ public class AutoEz extends BlackOutModule {
                     num = num < exhibobo.length - 1 ? num + 1 : 0;
                 }
                 lastNum = num;
-                messageQueue.add(0, new Message(exhibobo[num].replace("%s", name == null ? "You" : name), true));
+                messageQueue.addFirst(new Message(exhibobo[num].replace("%s", name == null ? "You" : name), true));
             }
 
             case Blackout -> {
@@ -357,35 +365,65 @@ public class AutoEz extends BlackOutModule {
                     if (num == lastNum) num = num < killMessages.get().size() - 1 ? num + 1 : 0;
 
                     lastNum = num;
-                    messageQueue.add(0, new Message(killMessages.get().get(num), true));
+                    messageQueue.addFirst(new Message(reformatString(killMessages.get().get(num), name, true), true));
                 }
             }
+
+            case File -> {
+                if (!deathList.isEmpty()) {
+                    int num = r.nextInt(0, deathList.size());
+                    if (num == lastNum) num = num < deathList.size() - 1 ? num + 1 : 0;
+
+                    lastNum = num;
+                    messageQueue.addFirst(new Message(reformatString(deathList.get(num), name, true), true));
+                }
+            }
+
             case NoClue -> {
                 int num = r.nextInt(0, noclue.length);
                 if (num == lastNum) {
                     num = num < noclue.length - 1 ? num + 1 : 0;
                 }
                 lastNum = num;
-                messageQueue.add(0, new Message(noclue[num].replace("%s", name == null ? "You" : name), true));
+                messageQueue.addFirst(new Message(reformatString(noclue[num], name, true), true));
             }
         }
     }
 
     private void sendPopMessage(String name) {
+        if (killMsgMode.get() == MessageMode.File && !popList.isEmpty()) {
+            int num = r.nextInt(0, popList.size() - 1);
+            if (num == lastPop) {
+                num = num < popList.size() - 1 ? num + 1 : 0;
+            }
+            lastPop = num;
+            messageQueue.add(new Message(reformatString(popList.get(num), name, false), false));
+            return;
+        }
+
         if (!popMessages.get().isEmpty()) {
             int num = r.nextInt(0, popMessages.get().size() - 1);
             if (num == lastPop) {
                 num = num < popMessages.get().size() - 1 ? num + 1 : 0;
             }
             lastPop = num;
-            messageQueue.add(new Message(popMessages.get().get(num).replace("<NAME>", name), false));
+            messageQueue.add(new Message(reformatString(popMessages.get().get(num), name, false), false));
         }
+    }
+
+    private String reformatString(String str, String name, boolean kill) {
+        String newStr = str;
+
+        newStr = newStr.replaceAll("(<name>|<NAME>|%s)", name == null ? "NN" : name);
+
+        return newStr;
     }
 
     private record Message(String message, boolean kill) {
     }
 
     public enum MessageMode {
+        File,
         Blackout,
         Exhibition,
         NoClue,

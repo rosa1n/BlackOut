@@ -139,10 +139,11 @@ public class BurrowPlus extends BlackOutModule {
         boolean switched = hand != null;
 
         if (!switched) {
-            switched = switch (switchMode.get()) {
-                case Normal, Silent -> InvUtils.swap(InvUtils.findInHotbar(predicate).slot(), true);
-                case PickSilent -> BOInvUtils.pickSwitch(InvUtils.find(predicate).slot());
-                case InvSwitch -> BOInvUtils.invSwitch(InvUtils.find(predicate).slot());
+            switch (switchMode.get()) {
+                case Normal, Silent -> {
+                    switched = true;
+                    BOInvUtils.swap(InvUtils.findInHotbar(predicate).slot());
+                }
             };
         }
 
@@ -153,7 +154,7 @@ public class BurrowPlus extends BlackOutModule {
         }
 
         if (instaRot.get() && SettingUtils.shouldRotate(RotationType.BlockPlace)) {
-            sendPacket(new PlayerMoveC2SPacket.LookAndOnGround(Managers.ROTATION.lastDir[0], 90, Managers.ON_GROUND.isOnGround()));
+            sendPacket(new PlayerMoveC2SPacket.LookAndOnGround(Managers.ROTATION.lastDir[0], 90, Managers.ON_GROUND.isOnGround(), mc.player.horizontalCollision));
         }
 
         double y = 0;
@@ -163,7 +164,7 @@ public class BurrowPlus extends BlackOutModule {
             y += velocity;
             velocity = (velocity - 0.08) * 0.98;
 
-            sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(mc.player.getX(), mc.player.getY() + y, mc.player.getZ(), false));
+            sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(mc.player.getX(), mc.player.getY() + y, mc.player.getZ(), false, mc.player.horizontalCollision));
         }
 
         placeBlock(Hand.MAIN_HAND, mc.player.getBlockPos().down().toCenterPos(), Direction.UP, mc.player.getBlockPos().down());
@@ -172,16 +173,14 @@ public class BurrowPlus extends BlackOutModule {
         if (placeSwing.get()) clientSwing(placeHand.get(), Hand.MAIN_HAND);
 
         for (int i = 0; i < rubberbandPackets.get(); i++) {
-            sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(mc.player.getX(), mc.player.getY() + y + rubberbandOffset.get(), mc.player.getZ(), false));
+            sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(mc.player.getX(), mc.player.getY() + y + rubberbandOffset.get(), mc.player.getZ(), false, mc.player.horizontalCollision));
         }
 
         success = true;
 
         if (hand == null) {
             switch (switchMode.get()) {
-                case Silent -> InvUtils.swapBack();
-                case PickSilent -> BOInvUtils.pickSwapBack();
-                case InvSwitch -> BOInvUtils.swapBack();
+                case Silent -> BOInvUtils.silentSwapBack();
             }
         }
 
@@ -193,10 +192,6 @@ public class BurrowPlus extends BlackOutModule {
 
     @Override
     public void onDeactivate() {
-        if (enabledPFly && Modules.get().isActive(PacketFly.class)) {
-            Modules.get().get(PacketFly.class).toggle();
-            Modules.get().get(PacketFly.class).sendToggledMsg("disabled by burrow+");
-        }
         if (enabledScaffold && Modules.get().isActive(ScaffoldPlus.class)) {
             Modules.get().get(ScaffoldPlus.class).toggle();
             Modules.get().get(ScaffoldPlus.class).sendToggledMsg("disabled by burrow+");
@@ -206,12 +201,6 @@ public class BurrowPlus extends BlackOutModule {
     @EventHandler(priority = EventPriority.HIGHEST)
     private void onPacket(PacketEvent.Receive event) {
         if (pFly.get() && success && event.packet instanceof PlayerPositionLookS2CPacket) {
-
-            if (!Modules.get().isActive(PacketFly.class)) {
-                Modules.get().get(PacketFly.class).toggle();
-                Modules.get().get(PacketFly.class).sendToggledMsg("enabled by burrow+");
-                enabledPFly = true;
-            }
             if (scaffold.get() && !Modules.get().isActive(ScaffoldPlus.class)) {
                 Modules.get().get(ScaffoldPlus.class).toggle();
                 Modules.get().get(ScaffoldPlus.class).sendToggledMsg("enabled by burrow+");

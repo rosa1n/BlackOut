@@ -6,6 +6,7 @@ import kassuk.addon.blackout.enums.RotationType;
 import kassuk.addon.blackout.enums.SwingHand;
 import kassuk.addon.blackout.managers.Managers;
 import kassuk.addon.blackout.utils.BOInvUtils;
+import kassuk.addon.blackout.utils.meteor.BODamageUtils;
 import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.settings.*;
@@ -216,7 +217,7 @@ public class AutoMend extends BlackOutModule {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     private void onTick(TickEvent.Pre event) {
-        if (mc.player == null || mc.world == null || Modules.get().isActive(Suicide.class)) return;
+        if (mc.player == null || mc.world == null) return;
 
         timer += speed.get() / 20D;
 
@@ -251,8 +252,6 @@ public class AutoMend extends BlackOutModule {
                                 InvUtils.swap(bottleSlot, true);
                                 switched = true;
                             }
-                            case PickSilent -> switched = BOInvUtils.pickSwitch(bottleSlot);
-                            case InvSwitch -> switched = BOInvUtils.invSwitch(bottleSlot);
                         }
                     }
 
@@ -267,8 +266,6 @@ public class AutoMend extends BlackOutModule {
                         if (hand == null) {
                             switch (switchMode.get()) {
                                 case Silent -> InvUtils.swapBack();
-                                case PickSilent -> BOInvUtils.pickSwapBack();
-                                case InvSwitch -> BOInvUtils.swapBack();
                             }
                         }
                     }
@@ -304,9 +301,7 @@ public class AutoMend extends BlackOutModule {
     }
 
     private boolean shouldMend() {
-        List<ItemStack> armors = new ArrayList<>();
-
-        for (int i = 0; i < 4; i++) armors.add(mc.player.getInventory().getArmorStack(i));
+        List<ItemStack> armors = BODamageUtils.getEquipment(mc.player);
 
         float max = -1;
         float lowest = 500;

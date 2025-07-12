@@ -25,7 +25,7 @@ public class PingSpoofManager {
     private DelayedPacket delayed2 = null;
 
     public PingSpoofManager() {
-        MeteorClient.EVENT_BUS.subscribe(this);
+        //MeteorClient.EVENT_BUS.subscribe(this);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)

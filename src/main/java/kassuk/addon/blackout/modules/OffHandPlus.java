@@ -2,8 +2,7 @@ package kassuk.addon.blackout.modules;
 
 import kassuk.addon.blackout.BlackOut;
 import kassuk.addon.blackout.BlackOutModule;
-import kassuk.addon.blackout.managers.Managers;
-import kassuk.addon.blackout.utils.BOInvUtils;
+import kassuk.addon.blackout.events.TimedEvent;
 import kassuk.addon.blackout.utils.OLEPOSSUtils;
 import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.settings.*;
@@ -14,10 +13,9 @@ import meteordevelopment.meteorclient.utils.player.PlayerUtils;
 import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
 import net.minecraft.client.gui.screen.ingame.InventoryScreen;
+import net.minecraft.component.DataComponentTypes;
 import net.minecraft.item.*;
-import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
+import net.minecraft.screen.slot.SlotActionType;
 
 import java.util.function.Predicate;
 
@@ -74,9 +72,9 @@ public class OffHandPlus extends BlackOutModule {
         .sliderRange(0, 1)
         .build()
     );
-    private final Setting<Boolean> strict = sgGeneral.add(new BoolSetting.Builder()
-        .name("Strict Swap")
-        .description("Uses pick silent and swap with offhand packets to bypass ncp inventory checks.")
+    private final Setting<Boolean> simpleSwap = sgGeneral.add(new BoolSetting.Builder()
+        .name("Simple Swap")
+        .description("Swaps with one packet instead of 4.")
         .defaultValue(false)
         .build()
     );
@@ -108,19 +106,17 @@ public class OffHandPlus extends BlackOutModule {
 
     private double timer = 0;
     private Item item = null;
-    private Suicide suicide = null;
     private AutoCrystalPlus autoCrystalRewrite = null;
     private CrystalAura crystalAura = null;
     private AutoMine autoMine = null;
     private long lastTime = 0;
 
     @EventHandler(priority = EventPriority.HIGHEST)
-    private void onRender(Render3DEvent event) {
+    private void onTimed(TimedEvent event) {
         if (mc.player == null || mc.world == null) return;
         timer -= (System.currentTimeMillis() - lastTime) / 1000d;
         lastTime = System.currentTimeMillis();
 
-        if (suicide == null) suicide = Modules.get().get(Suicide.class);
         if (autoCrystalRewrite == null) autoCrystalRewrite = Modules.get().get(AutoCrystalPlus.class);
         if (crystalAura == null) crystalAura = Modules.get().get(CrystalAura.class);
         if (autoMine == null) autoMine = Modules.get().get(AutoMine.class);
@@ -142,13 +138,12 @@ public class OffHandPlus extends BlackOutModule {
     }
 
     private void move(int slot) {
-        if (strict.get()) {
-            BOInvUtils.pickSwitch(slot);
-            sendPacket(new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, new BlockPos(0, 0, 0), Direction.DOWN, 0));
-            BOInvUtils.pickSwapBack();
-            InvUtils.swap(Managers.HOLDING.slot, false);
+        if (simpleSwap.get()) {
+            // Apparently this is vanilla functionality for swap hand key.
+            mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, slot, 40, SlotActionType.SWAP, mc.player);
             return;
         }
+
         InvUtils.move().from(slot).toOffhand();
     }
 
@@ -159,7 +154,7 @@ public class OffHandPlus extends BlackOutModule {
     }
 
     private Item getItem() {
-        if (mc.player.getMainHandStack().getItem() instanceof SwordItem && (!safeSword.get() || !inDanger())) {
+        if ((mc.player.getMainHandStack() != null && mc.player.getMainHandStack().contains(DataComponentTypes.WEAPON)) && (!safeSword.get() || !inDanger())) {
             if (gapMode.get().sword) {
                 switch (swordMode.get()) {
                     case Always -> {
@@ -173,13 +168,13 @@ public class OffHandPlus extends BlackOutModule {
             }
         }
 
-        if (inDanger() && !suicide.isActive() && itemAvailable(itemStack -> itemStack.getItem() == Items.TOTEM_OF_UNDYING)) {
+        if (inDanger() && itemAvailable(itemStack -> itemStack.getItem() == Items.TOTEM_OF_UNDYING)) {
             return Items.TOTEM_OF_UNDYING;
         }
 
         switch (itemMode.get()) {
             case Totem -> {
-                if (!suicide.isActive() && itemAvailable(itemStack -> itemStack.getItem() == Items.TOTEM_OF_UNDYING)) {
+                if (itemAvailable(itemStack -> itemStack.getItem() == Items.TOTEM_OF_UNDYING)) {
                     return Items.TOTEM_OF_UNDYING;
                 }
             }

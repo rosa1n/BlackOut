@@ -3,12 +3,15 @@ package kassuk.addon.blackout.utils;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import kassuk.addon.blackout.managers.Managers;
 import meteordevelopment.meteorclient.mixininterface.IClientPlayerInteractionManager;
+import meteordevelopment.meteorclient.utils.player.InvUtils;
+import meteordevelopment.meteorclient.utils.player.SlotUtils;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.packet.c2s.play.ClickSlotC2SPacket;
-import net.minecraft.network.packet.c2s.play.PickFromInventoryC2SPacket;
+import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.screen.slot.SlotActionType;
+import net.minecraft.util.ClickType;
 
 import static meteordevelopment.meteorclient.MeteorClient.mc;
 
@@ -19,52 +22,39 @@ import static meteordevelopment.meteorclient.MeteorClient.mc;
 @SuppressWarnings("DataFlowIssue")
 public class BOInvUtils {
     private static int[] slots;
-    public static int pickSlot = -1;
+    private static int lastSlot = -1;
 
-    public static boolean pickSwitch(int slot) {
-        if (slot >= 0) {
-            Managers.HOLDING.modifyStartTime = System.currentTimeMillis();
-            pickSlot = slot;
-            mc.getNetworkHandler().sendPacket(new PickFromInventoryC2SPacket(slot));
-
-            return true;
+    public static void silentSwap(int slot) {
+        if (slot > 9 || slot < 0) {
+            return;
         }
-        return false;
-    }
-    public static void pickSwapBack() {
-        if (pickSlot >= 0) {
-            mc.getNetworkHandler().sendPacket(new PickFromInventoryC2SPacket(pickSlot));
-            pickSlot = -1;
-        }
-    }
 
-    // Credits to rickyracuun
-    public static boolean invSwitch(int slot) {
-        if (slot >= 0) {
-            ScreenHandler handler = mc.player.currentScreenHandler;
-            Int2ObjectArrayMap<ItemStack> stack = new Int2ObjectArrayMap<>();
-            stack.put(slot, handler.getSlot(slot).getStack());
-
-            mc.getNetworkHandler().sendPacket(new ClickSlotC2SPacket(handler.syncId,
-                handler.getRevision(), PlayerInventory.MAIN_SIZE + Managers.HOLDING.slot,
-                slot, SlotActionType.SWAP, handler.getSlot(slot).getStack(), stack)
-            );
-            ((IClientPlayerInteractionManager) mc.interactionManager).meteor$syncSelected();
-            slots = new int[]{slot, Managers.HOLDING.slot};
-            return true;
+        if (lastSlot != -1) {
+            silentSwapBack();
         }
-        return false;
+
+        lastSlot = mc.player.getInventory().getSelectedSlot();
+        mc.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(slot));
+        // mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, slot, 0, SlotActionType.PICKUP_ALL, mc.player);
+        // mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, slot, 1, SlotActionType.PICKUP_ALL, mc.player);
+        lastSlot = -1;
     }
 
-    public static void swapBack() {
-        ScreenHandler handler = mc.player.currentScreenHandler;
-        Int2ObjectArrayMap<ItemStack> stack = new Int2ObjectArrayMap<>();
-        stack.put(slots[0], handler.getSlot(slots[0]).getStack());
+    public static void swap(int slot) {
+        if (slot > 9 || slot < 0) {
+            return;
+        }
 
-        mc.getNetworkHandler().sendPacket(new ClickSlotC2SPacket(handler.syncId,
-            handler.getRevision(), PlayerInventory.MAIN_SIZE + slots[1],
-            slots[0], SlotActionType.SWAP, handler.getSlot(slots[0]).getStack().copy(), stack)
-        );
-        ((IClientPlayerInteractionManager) mc.interactionManager).meteor$syncSelected();
+        if (mc.player.getInventory().getSelectedSlot() != slot) {
+            mc.player.getInventory().setSelectedSlot(slot);
+            mc.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(slot));
+        }
+    }
+
+    public static void silentSwapBack() {
+        if (lastSlot != -1) {
+            mc.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(lastSlot));
+            lastSlot = -1;
+        }
     }
 }

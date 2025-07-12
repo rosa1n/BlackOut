@@ -15,6 +15,7 @@ import meteordevelopment.meteorclient.systems.config.Config;
 import meteordevelopment.meteorclient.systems.modules.Category;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.systems.modules.Modules;
+import meteordevelopment.meteorclient.utils.network.PacketUtils;
 import meteordevelopment.meteorclient.utils.player.ChatUtils;
 import net.minecraft.client.network.PendingUpdateManager;
 import net.minecraft.client.network.SequencedPacketCreator;
@@ -90,7 +91,7 @@ public class BlackOutModule extends Module {
 
     public void sendPacket(Packet<?> packet) {
         if (mc.getNetworkHandler() == null) return;
-        mc.getNetworkHandler().sendPacket(packet);
+        mc.getNetworkHandler().getConnection().send(packet, null, true);
     }
 
     public void sendSequenced(SequencedPacketCreator packetCreator) {
@@ -99,7 +100,7 @@ public class BlackOutModule extends Module {
         PendingUpdateManager sequence = mc.world.getPendingUpdateManager().incrementSequence();
         Packet<?> packet = packetCreator.predict(sequence.getSequence());
 
-        mc.getNetworkHandler().sendPacket(packet);
+        mc.getNetworkHandler().getConnection().send(packet, null, true);
 
         sequence.close();
     }
@@ -112,7 +113,7 @@ public class BlackOutModule extends Module {
                 eyes.z > pos.getZ() && eyes.z < pos.getZ() + 1;
 
         SettingUtils.swing(SwingState.Pre, SwingType.Placing, hand);
-        sendSequenced(s -> new PlayerInteractBlockC2SPacket(hand, new BlockHitResult(blockHitVec, blockDirection, pos, inside), s));
+        mc.getNetworkHandler().getConnection().send(new PlayerInteractBlockC2SPacket(hand, new BlockHitResult(blockHitVec, blockDirection, pos, inside), 0), null, true);
         SettingUtils.swing(SwingState.Post, SwingType.Placing, hand);
     }
 
@@ -124,13 +125,13 @@ public class BlackOutModule extends Module {
             eyes.z > pos.getZ() && eyes.z < pos.getZ() + 1;
 
         SettingUtils.swing(SwingState.Pre, SwingType.Interact, hand);
-        sendSequenced(s -> new PlayerInteractBlockC2SPacket(hand, new BlockHitResult(blockHitVec, blockDirection, pos, inside), s));
+        mc.getNetworkHandler().getConnection().send(new PlayerInteractBlockC2SPacket(hand, new BlockHitResult(blockHitVec, blockDirection, pos, inside), 0), null, true);
         SettingUtils.swing(SwingState.Post, SwingType.Interact, hand);
     }
 
     public void useItem(Hand hand) {
         SettingUtils.swing(SwingState.Pre, SwingType.Using, hand);
-        sendSequenced(s -> new PlayerInteractItemC2SPacket(hand, s, Managers.ROTATION.lastDir[0], Managers.ROTATION.lastDir[1]));
+        mc.getNetworkHandler().getConnection().send(new PlayerInteractItemC2SPacket(hand, 0, Managers.ROTATION.lastDir[0], Managers.ROTATION.lastDir[1]), null, true);
         SettingUtils.swing(SwingState.Post, SwingType.Using, hand);
     }
 

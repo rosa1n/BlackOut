@@ -6,17 +6,20 @@ import kassuk.addon.blackout.enums.RotationType;
 import kassuk.addon.blackout.enums.SwingHand;
 import kassuk.addon.blackout.enums.SwingState;
 import kassuk.addon.blackout.enums.SwingType;
+import kassuk.addon.blackout.events.TimedEvent;
 import kassuk.addon.blackout.globalsettings.SwingSettings;
 import kassuk.addon.blackout.managers.Managers;
 import kassuk.addon.blackout.utils.BOInvUtils;
 import kassuk.addon.blackout.utils.OLEPOSSUtils;
 import kassuk.addon.blackout.utils.SettingUtils;
+import meteordevelopment.meteorclient.MeteorClient;
 import meteordevelopment.meteorclient.events.packets.PacketEvent;
 import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.renderer.Renderer3D;
 import meteordevelopment.meteorclient.renderer.ShapeMode;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.friends.Friends;
+import meteordevelopment.meteorclient.utils.Utils;
 import meteordevelopment.meteorclient.utils.entity.EntityUtils;
 import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.meteorclient.utils.render.color.Color;
@@ -28,6 +31,8 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
+import net.minecraft.component.ComponentType;
+import net.minecraft.component.DataComponentTypes;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.Entity;
@@ -37,7 +42,7 @@ import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.item.SwordItem;
+import net.minecraft.item.RangedWeaponItem;
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket;
 import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket;
@@ -59,6 +64,7 @@ public class AutoMine extends BlackOutModule {
     private final SettingGroup sgSpeed = settings.createGroup("Speed");
     private final SettingGroup sgExplode = settings.createGroup("Explode");
 
+    private final SettingGroup sgCunny = settings.createGroup("Cunny");
     private final SettingGroup sgCev = settings.createGroup("Cev");
     private final SettingGroup sgAntiSurround = settings.createGroup("Anti Surround");
     private final SettingGroup sgAntiBurrow = settings.createGroup("Anti Burrow");
@@ -194,6 +200,48 @@ public class AutoMine extends BlackOutModule {
         .sliderRange(0, 10)
         .build()
     );
+
+    //-------------------Cunny-------------------//
+    private final Setting<Integer> sysPlaceDelay = sgCunny.add(new IntSetting.Builder()
+        .name("Sys Place Delay")
+        .description(".")
+        .defaultValue(250)
+        .sliderRange(0, 750)
+        .build()
+    );
+    private final Setting<Boolean> preferIronPickaxe = sgCunny.add(new BoolSetting.Builder()
+        .name("Prefer Iron Pickaxe")
+        .description(".")
+        .defaultValue(false)
+        .build()
+    );
+
+    private final Setting<Boolean> forcePlaceCrystal = sgCunny.add(new BoolSetting.Builder()
+        .name("Force Place Crystal")
+        .description(".")
+        .defaultValue(false)
+        .build()
+    );
+    private final Setting<Boolean> forceMineAlways = sgCunny.add(new BoolSetting.Builder()
+        .name("Force Mine Always")
+        .description(".")
+        .defaultValue(false)
+        .build()
+    );
+    private final Setting<Boolean> doubleMine = sgCunny.add(new BoolSetting.Builder()
+        .name("Double Mine")
+        .description(".")
+        .defaultValue(false)
+        .build()
+    );
+    private final Setting<Boolean> forceCrystalOnMine = sgCunny.add(new BoolSetting.Builder()
+        .name("Force Crystal On Mine")
+        .description(".")
+        .defaultValue(false)
+        .build()
+    );
+
+
 
     //--------------------Cev--------------------//
     private final Setting<Priority> cevPriority = sgCev.add(new EnumSetting.Builder<Priority>()
@@ -382,6 +430,9 @@ public class AutoMine extends BlackOutModule {
     private BlockState lastState = null;
     private BlockPos lastPos = null;
 
+    private Direction[] directions = new Direction[]{Direction.EAST, Direction.WEST, Direction.NORTH, Direction.SOUTH};
+
+
     @Override
     public void onActivate() {
         target = null;
@@ -401,6 +452,11 @@ public class AutoMine extends BlackOutModule {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     private void onRender(Render3DEvent event) {
+        render(event.renderer);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    private void onTimed(TimedEvent event) {
         if (mc.player == null || mc.world == null) return;
 
         if (target != null) {
@@ -420,7 +476,6 @@ public class AutoMine extends BlackOutModule {
 
         update();
         explodeUpdate();
-        render(event.renderer);
     }
 
 
@@ -531,9 +586,56 @@ public class AutoMine extends BlackOutModule {
                     render = -2;
                 }
 
+                if (doubleMine.get()) {
+                    List<BlockPos> doubleMineBlocks = new ArrayList<>();
+
+                    switch (target.type) {
+                        case SurroundMiner, SurroundCev -> {
+                            if (getBlock(target.pos.offset(Direction.UP)) != Blocks.AIR) {
+                                doubleMineBlocks.add(target.pos.offset(Direction.UP));
+                            } else {
+                                for (Direction d : directions) {
+                                    BlockPos blockPos = target.pos.offset(d);
+
+                                    if (getBlock(blockPos) != Blocks.AIR) {
+                                        doubleMineBlocks.add(blockPos);
+                                    }
+                                }
+                            }
+                        }
+
+                        default -> {
+                            for (Direction d : directions) {
+                                BlockPos blockPos = target.pos.offset(d);
+
+                                if (getBlock(blockPos) != Blocks.AIR) {
+                                    doubleMineBlocks.add(blockPos);
+                                }
+                            }
+                        }
+                    }
+
+                    doubleMineBlocks.sort(Comparator.comparingDouble(
+                        value -> Utils.squaredDistance(
+                            MeteorClient.mc.player.getX(),
+                            MeteorClient.mc.player.getY(),
+                            MeteorClient.mc.player.getZ(),
+                            value.getX(),
+                            value.getY(),
+                            value.getZ())));
+
+                    if (!doubleMineBlocks.isEmpty()) {
+                        Direction d = SettingUtils.getPlaceOnDirection(doubleMineBlocks.getFirst());
+                        mc.getNetworkHandler().getConnection().send(new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK, doubleMineBlocks.getFirst(), d == null ? Direction.UP : d, 0), null, true);
+                        SettingUtils.mineSwing(SwingSettings.MiningSwingState.Start);
+                    }
+                }
+
+
+
                 Direction dir = SettingUtils.getPlaceOnDirection(target.pos);
 
-                sendSequenced(s -> new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK, target.pos, dir == null ? Direction.UP : dir, s));
+                mc.getNetworkHandler().getConnection().send(new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK, target.pos, dir == null ? Direction.UP : dir, 0), null, true);
 
                 SettingUtils.mineSwing(SwingSettings.MiningSwingState.Start);
 
@@ -552,6 +654,9 @@ public class AutoMine extends BlackOutModule {
 
         if (isPaused()) return;
         if (!miningCheck(fastestSlot())) return;
+
+        if (forceMineAlways.get()) endMine();
+
         if (!civCheck()) return;
         if (!crystalCheck()) return;
         if (!OLEPOSSUtils.solid2(target.pos)) return;
@@ -561,7 +666,7 @@ public class AutoMine extends BlackOutModule {
 
     private boolean isPaused() {
         if (pauseEat.get() && mc.player.isUsingItem()) return true;
-        return pauseSword.get() && mc.player.getMainHandStack().getItem() instanceof SwordItem;
+        return pauseSword.get() && mc.player.getMainHandStack().getItem().getComponents().contains(DataComponentTypes.WEAPON);
     }
 
     private boolean civCheck() {
@@ -589,13 +694,13 @@ public class AutoMine extends BlackOutModule {
             switch (pickAxeSwitchMode.get()) {
                 case Silent -> {
                     switched = true;
-                    InvUtils.swap(slot, true);
+                    BOInvUtils.silentSwap(slot);
                 }
-                case PickSilent -> {
+
+                case Swap -> {
                     switched = true;
-                    BOInvUtils.pickSwitch(slot);
+                    BOInvUtils.swap(slot);
                 }
-                case InvSwitch -> switched = BOInvUtils.invSwitch(slot);
             }
             swapBack = switched;
         }
@@ -604,7 +709,7 @@ public class AutoMine extends BlackOutModule {
             return;
         }
 
-        sendSequenced(s -> new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK, target.pos, dir, s));
+        mc.getNetworkHandler().getConnection().send(new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK, target.pos, dir, 0), null, true);
 
         mined = true;
         SettingUtils.mineSwing(SwingSettings.MiningSwingState.End);
@@ -620,9 +725,7 @@ public class AutoMine extends BlackOutModule {
 
         if (swapBack) {
             switch (pickAxeSwitchMode.get()) {
-                case Silent -> InvUtils.swapBack();
-                case PickSilent -> BOInvUtils.pickSwapBack();
-                case InvSwitch -> BOInvUtils.swapBack();
+                case Silent -> BOInvUtils.silentSwapBack();
             }
         }
 
@@ -635,19 +738,27 @@ public class AutoMine extends BlackOutModule {
             target = null;
             minedFor = 0;
         }
+
+        if (forceCrystalOnMine.get()) {
+            crystalCheck();
+        }
     }
 
     private boolean crystalCheck() {
+        if (target == null || target.type == null) {
+            return false;
+        }
+
         switch (target.type) {
             case Cev, TrapCev, SurroundCev -> {
-                if (crystalAt(target.crystalPos) != null) return true;
+                if (crystalAt(target.crystalPos) != null && !forcePlaceCrystal.get()) return true;
                 if (!EntityUtils.intersectsWithEntity(Box.from(new BlockBox(target.crystalPos)).withMaxY(target.crystalPos.getY() + (SettingUtils.cc() ? 1 : 2)), entity -> !entity.isSpectator())) {
                     placeCrystal();
-                    return false;
+                    return forcePlaceCrystal.get();
                 }
             }
             case AutoCity -> {
-                if (crystalAt(target.crystalPos) != null) return true;
+                if (crystalAt(target.crystalPos) != null && !forcePlaceCrystal.get()) return true;
                 if (!EntityUtils.intersectsWithEntity(Box.from(new BlockBox(target.crystalPos)).withMaxY(target.crystalPos.getY() + (SettingUtils.cc() ? 1 : 2)), entity -> !entity.isSpectator())) return placeCrystal();
             }
             default -> {
@@ -667,16 +778,17 @@ public class AutoMine extends BlackOutModule {
     }
 
     private boolean placeCrystal() {
-        if (System.currentTimeMillis() - lastPlace < 250) {
+        if (System.currentTimeMillis() - lastPlace < sysPlaceDelay.get()) {
             return false;
         }
 
         Hand hand = getHand();
 
-        int crystalSlot = InvUtils.find(Items.END_CRYSTAL).slot();
+        int crystalSlot = InvUtils.findInHotbar(Items.END_CRYSTAL).slot();
         if (hand == null && crystalSlot < 0) {
             return false;
         }
+
 
         Direction dir = SettingUtils.getPlaceOnDirection(target.crystalPos.down());
 
@@ -696,10 +808,12 @@ public class AutoMine extends BlackOutModule {
             switch (crystalSwitchMode.get()) {
                 case Silent -> {
                     switched = true;
-                    InvUtils.swap(crystalSlot, true);
+                    BOInvUtils.silentSwap(crystalSlot);
                 }
-                case PickSilent -> switched = BOInvUtils.pickSwitch(crystalSlot);
-                case InvSwitch -> switched = BOInvUtils.invSwitch(crystalSlot);
+                case Swap -> {
+                    switched = true;
+                    BOInvUtils.swap(crystalSlot);
+                }
             }
         }
 
@@ -721,9 +835,7 @@ public class AutoMine extends BlackOutModule {
 
         if (hand == null) {
             switch (crystalSwitchMode.get()) {
-                case Silent -> InvUtils.swapBack();
-                case PickSilent -> BOInvUtils.pickSwapBack();
-                case InvSwitch -> BOInvUtils.swapBack();
+                case Silent -> BOInvUtils.silentSwapBack();
             }
         }
 
@@ -1144,10 +1256,19 @@ public class AutoMine extends BlackOutModule {
 
     private int fastestSlot() {
         int slot = -1;
+
         if (mc.player == null || mc.world == null) {
             return -1;
         }
-        for (int i = 0; i < (pickAxeSwitchMode.get() == SwitchMode.Silent ? 9 : 35); i++) {
+
+        for (int i = 0; i < ((pickAxeSwitchMode.get() == SwitchMode.Silent || pickAxeSwitchMode.get() == SwitchMode.Swap) ? 9 : 35); i++) {
+            boolean isIron = mc.player.getInventory().getStack(i).getItem() == Items.IRON_PICKAXE;
+
+            if (isIron && preferIronPickaxe.get()) {
+                slot = i;
+                break;
+            }
+
             if (slot == -1 || (mc.player.getInventory().getStack(i).getMiningSpeedMultiplier(mc.world.getBlockState(target.pos)) > mc.player.getInventory().getStack(slot).getMiningSpeedMultiplier(mc.world.getBlockState(target.pos)))) {
                 slot = i;
             }
@@ -1190,6 +1311,7 @@ public class AutoMine extends BlackOutModule {
     }
 
     public enum SwitchMode {
+        Swap,
         Silent,
         PickSilent,
         InvSwitch

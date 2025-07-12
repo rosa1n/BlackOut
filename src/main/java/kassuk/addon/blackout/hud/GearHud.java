@@ -1,6 +1,7 @@
 package kassuk.addon.blackout.hud;
 
 import kassuk.addon.blackout.BlackOut;
+import kassuk.addon.blackout.utils.meteor.BODamageUtils;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.hud.HudElement;
 import meteordevelopment.meteorclient.systems.hud.HudElementInfo;
@@ -9,6 +10,7 @@ import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 
 import java.util.List;
@@ -98,8 +100,8 @@ public class GearHud extends HudElement {
     private double armorDur() {
         double rur = 0;
         if (mc.player != null) {
-            for (int i = 0; i < 4; i++) {
-                rur += mc.player.getInventory().armor.get(i).getMaxDamage();
+            for (ItemStack stack : BODamageUtils.getEquipment(mc.player)) {
+                rur += stack.getMaxDamage();
             }
         }
         return rur;

@@ -420,7 +420,7 @@ public class SurroundPlus extends BlackOutModule {
             double dist = new Vec3d(targetX, 0, targetZ).distanceTo(new Vec3d(mc.player.getX(), 0, mc.player.getZ()));
 
             if (dist < 0.2873) {
-                sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(targetX, mc.player.getY(), targetZ, Managers.ON_GROUND.isOnGround()));
+                sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(targetX, mc.player.getY(), targetZ, Managers.ON_GROUND.isOnGround(), mc.player.horizontalCollision));
             }
 
             double x = mc.player.getX(), z = mc.player.getZ();
@@ -431,7 +431,7 @@ public class SurroundPlus extends BlackOutModule {
                 x += Math.cos(Math.toRadians(yaw)) * 0.2873;
                 z += Math.sin(Math.toRadians(yaw)) * 0.2873;
 
-                sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(x, mc.player.getY(), z, Managers.ON_GROUND.isOnGround()));
+                sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(x, mc.player.getY(), z, Managers.ON_GROUND.isOnGround(), mc.player.horizontalCollision));
             }
 
             mc.player.setPos(targetX, mc.player.getY(), targetZ);
@@ -494,8 +494,6 @@ public class SurroundPlus extends BlackOutModule {
         if (switched && hand == null) {
             switch (switchMode.get()) {
                 case Silent -> InvUtils.swapBack();
-                case PickSilent -> BOInvUtils.pickSwapBack();
-                case InvSwitch -> BOInvUtils.swapBack();
             }
         }
     }
@@ -546,11 +544,9 @@ public class SurroundPlus extends BlackOutModule {
         if (!switched && hand == null) {
             switch (switchMode.get()) {
                 case Normal, Silent -> {
-                    InvUtils.swap(result.slot(), true);
+                    BOInvUtils.swap(result.slot());
                     switched = true;
                 }
-                case PickSilent -> switched = BOInvUtils.pickSwitch(result.slot());
-                case InvSwitch -> switched = BOInvUtils.invSwitch(result.slot());
             }
         }
 
@@ -593,7 +589,6 @@ public class SurroundPlus extends BlackOutModule {
         if (!(item instanceof BlockItem block)) {return;}
 
         mc.world.setBlockState(pos, block.getBlock().getDefaultState());
-        mc.world.playSound(pos.getX(), pos.getY(), pos.getZ(), SoundEvents.BLOCK_STONE_PLACE, SoundCategory.BLOCKS, 1, 1, false);
     }
 
     private void setSupport() {

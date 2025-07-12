@@ -13,12 +13,10 @@
     "IRaycastContext",
     "ISetCameraEntityS2CPacket",
     "ISpectatorTeleportC2SPacket",
-    "MixinBackground",
     "MixinClientCommonNetworkHandler",
     "MixinClientPlayerEntity",
     "MixinClientPlayerInteractionManager",
     "MixinEntity",
-    "MixinExplosion",
     "MixinHeldItemRenderer",
     "MixinLivingEntityRenderer",
     "MixinPlayerEntity"
@@ -27,7 +25,6 @@
     "defaultRequire": 1
   },
   "mixins": [
-    "AccessorNbtCompound",
-    "MixinClientConnection"
+    "AccessorNbtCompound"
   ]
 }

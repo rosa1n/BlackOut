@@ -429,14 +429,6 @@ public class AnchorAuraPlus extends BlackOutModule {
                     FindItemResult result = InvUtils.findInHotbar(Items.RESPAWN_ANCHOR);
                     InvUtils.swap(result.slot(), true);
                 }
-                case PickSilent -> {
-                    FindItemResult result = InvUtils.find(Items.RESPAWN_ANCHOR);
-                    switched = BOInvUtils.pickSwitch(result.slot());
-                }
-                case InvSwitch -> {
-                    FindItemResult result = InvUtils.find(Items.RESPAWN_ANCHOR);
-                    switched = BOInvUtils.invSwitch(result.slot());
-                }
             }
         }
 
@@ -453,8 +445,6 @@ public class AnchorAuraPlus extends BlackOutModule {
         if (hand == null) {
             switch (switchMode.get()) {
                 case Silent -> InvUtils.swapBack();
-                case PickSilent -> BOInvUtils.pickSwapBack();
-                case InvSwitch -> BOInvUtils.swapBack();
             }
         }
         return true;
@@ -497,15 +487,6 @@ public class AnchorAuraPlus extends BlackOutModule {
                     FindItemResult result = InvUtils.findInHotbar(Items.GLOWSTONE);
                     InvUtils.swap(result.slot(), true);
                 }
-                case PickSilent -> {
-                    FindItemResult result = InvUtils.find(Items.GLOWSTONE);
-                    switched = BOInvUtils.pickSwitch(result.slot());
-                }
-                case InvSwitch -> {
-                    FindItemResult result = InvUtils.find(Items.GLOWSTONE);
-                    switched = BOInvUtils.invSwitch(result.slot());
-                }
-
             }
         }
 
@@ -522,8 +503,6 @@ public class AnchorAuraPlus extends BlackOutModule {
         if (hand == null) {
             switch (switchMode.get()) {
                 case Silent -> InvUtils.swapBack();
-                case PickSilent -> BOInvUtils.pickSwapBack();
-                case InvSwitch -> BOInvUtils.swapBack();
             }
         }
         return true;
@@ -566,14 +545,6 @@ public class AnchorAuraPlus extends BlackOutModule {
                     FindItemResult result = InvUtils.findInHotbar(item -> item.getItem() != Items.GLOWSTONE);
                     InvUtils.swap(result.slot(), true);
                 }
-                case PickSilent -> {
-                    FindItemResult result = InvUtils.find(item -> item.getItem() != Items.GLOWSTONE);
-                    switched = BOInvUtils.pickSwitch(result.slot());
-                }
-                case InvSwitch -> {
-                    FindItemResult result = InvUtils.find(item -> item.getItem() != Items.GLOWSTONE);
-                    switched = BOInvUtils.invSwitch(result.slot());
-                }
             }
         }
 
@@ -590,8 +561,6 @@ public class AnchorAuraPlus extends BlackOutModule {
         if (hand == null) {
             switch (switchMode.get()) {
                 case Silent -> InvUtils.swapBack();
-                case PickSilent -> BOInvUtils.pickSwapBack();
-                case InvSwitch -> BOInvUtils.swapBack();
             }
         }
         return true;

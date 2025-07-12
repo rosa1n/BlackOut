@@ -18,10 +18,12 @@ import meteordevelopment.meteorclient.utils.entity.DamageUtils;
 import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.meteorclient.utils.player.Rotations;
 import meteordevelopment.orbit.EventHandler;
+import net.minecraft.component.ComponentType;
+import net.minecraft.component.DataComponentTypes;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.AxeItem;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.SwordItem;
+import net.minecraft.item.Items;
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket;
 import net.minecraft.util.Hand;
 
@@ -108,7 +110,7 @@ public class KillAuraPlus extends BlackOutModule {
         boolean switched = false;
         switch (switchMode.get()) {
             case Disabled ->
-                switched = !onlyWeapon.get() || mc.player.getMainHandStack().getItem() instanceof SwordItem || mc.player.getMainHandStack().getItem() instanceof AxeItem;
+                switched = !onlyWeapon.get() || (mc.player.getMainHandStack() != null && mc.player.getMainHandStack().contains(DataComponentTypes.WEAPON)) || mc.player.getMainHandStack().getItem() instanceof AxeItem;
             case Normal -> {
                 int slot = bestSlot(false);
                 if (slot >= 0) {
@@ -141,22 +143,8 @@ public class KillAuraPlus extends BlackOutModule {
                 switched = false;
                 int slot = bestSlot(false);
                 if (slot >= 0) {
-                    InvUtils.swap(slot, true);
+                    BOInvUtils.swap(slot);
                     switched = true;
-                }
-            }
-            case PickSwitch -> {
-                switched = false;
-                int slot = bestSlot(true);
-                if (slot >= 0) {
-                    switched = BOInvUtils.pickSwitch(slot);
-                }
-            }
-            case InvSwitch -> {
-                switched = false;
-                int slot = bestSlot(true);
-                if (slot >= 0) {
-                    switched = BOInvUtils.invSwitch(slot);
                 }
             }
         }
@@ -169,8 +157,6 @@ public class KillAuraPlus extends BlackOutModule {
 
         switch (switchMode.get()) {
             case Silent -> InvUtils.swapBack();
-            case InvSwitch -> BOInvUtils.swapBack();
-            case PickSwitch -> BOInvUtils.pickSwapBack();
         }
 
         if (rotationMode.get() == RotationMode.OnHit) {
@@ -195,7 +181,7 @@ public class KillAuraPlus extends BlackOutModule {
         double dmg;
         for (int i = 0; i < (inventory ? mc.player.getInventory().size() + 1 : 9); i++) {
             ItemStack stack = mc.player.getInventory().getStack(i);
-            if (onlyWeapon.get() && !(stack.getItem() instanceof SwordItem) && !(stack.getItem() instanceof AxeItem)) {
+            if (onlyWeapon.get() && !(mc.player.getMainHandStack() != null && mc.player.getMainHandStack().contains(DataComponentTypes.WEAPON)) && !(stack.getItem() instanceof AxeItem)) {
                 continue;
             }
 

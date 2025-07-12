@@ -330,8 +330,6 @@ public class AutoTrapPlus extends BlackOutModule {
                                                 obsidian = hotbar.count();
                                                 InvUtils.swap(hotbar.slot(), true);
                                             }
-                                            case PickSilent -> BOInvUtils.pickSwitch(inventory.slot());
-                                            case InvSwitch -> BOInvUtils.invSwitch(inventory.slot());
                                         }
                                     }
                                 }
@@ -343,8 +341,6 @@ public class AutoTrapPlus extends BlackOutModule {
                         if (switched) {
                             switch (switchMode.get()) {
                                 case Silent -> InvUtils.swapBack();
-                                case PickSilent -> BOInvUtils.pickSwapBack();
-                                case InvSwitch -> BOInvUtils.swapBack();
                             }
                         }
                     }

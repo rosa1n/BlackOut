@@ -6,6 +6,7 @@ import kassuk.addon.blackout.enums.RotationType;
 import kassuk.addon.blackout.enums.SwingHand;
 import kassuk.addon.blackout.enums.SwingState;
 import kassuk.addon.blackout.enums.SwingType;
+import kassuk.addon.blackout.events.TimedEvent;
 import kassuk.addon.blackout.managers.Managers;
 import kassuk.addon.blackout.mixins.IInteractEntityC2SPacket;
 import kassuk.addon.blackout.timers.TimerList;
@@ -23,6 +24,7 @@ import meteordevelopment.meteorclient.renderer.ShapeMode;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.friends.Friends;
 import meteordevelopment.meteorclient.systems.modules.Modules;
+import meteordevelopment.meteorclient.utils.misc.Keybind;
 import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.meteorclient.utils.render.color.Color;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
@@ -57,6 +59,7 @@ public class AutoCrystalPlus extends BlackOutModule {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
     private final SettingGroup sgPlace = settings.createGroup("Place");
     private final SettingGroup sgExplode = settings.createGroup("Explode");
+    private final SettingGroup sgCunny = settings.createGroup("Cunny");
     private final SettingGroup sgSwitch = settings.createGroup("Switch");
     private final SettingGroup sgDamage = settings.createGroup("Damage");
     private final SettingGroup sgID = settings.createGroup("ID Predict");
@@ -230,8 +233,8 @@ public class AutoCrystalPlus extends BlackOutModule {
         .name("Explode Speed")
         .description("How many times to hit crystal each second.")
         .defaultValue(4)
-        .range(0.01, 20)
-        .sliderRange(0.01, 20)
+        .min(1)
+        .sliderRange(0.01, 120)
         .build()
     );
     private final Setting<Boolean> setDead = sgExplode.add(new BoolSetting.Builder()
@@ -249,6 +252,63 @@ public class AutoCrystalPlus extends BlackOutModule {
         .visible(setDead::get)
         .build()
     );
+
+    //---------------------Cunny---------------------//
+    private final Setting<Boolean> alwaysFacePlace = sgCunny.add(new BoolSetting.Builder()
+        .name("Always FacePlace")
+        .description("FacePlaces constantly.")
+        .defaultValue(false)
+        .build()
+    );
+    private final Setting<Boolean> alwaysPassSpeed = sgCunny.add(new BoolSetting.Builder()
+        .name("Always Pass Speed")
+        .description("Always pass speed check.")
+        .defaultValue(false)
+        .build()
+    );
+    private final Setting<Boolean> alwaysPassDelay = sgCunny.add(new BoolSetting.Builder()
+        .name("Always Pass Delay")
+        .description("Always pass delay check.")
+        .defaultValue(false)
+        .build()
+    );
+    private final Setting<Integer> skipLastPlaces = sgExplode.add(new IntSetting.Builder()
+        .name("Skip Last Places")
+        .description("How much to try and differentiate .")
+        .defaultValue(3)
+        .min(0)
+        .sliderRange(0, 10)
+        .build()
+    );
+    private final Setting<Double> reduceLastPlace = sgCunny.add(new DoubleSetting.Builder()
+        .name("Reduce Last Place")
+        .description("Reduces the last placed blocks damage.")
+        .defaultValue(1.2)
+        .range(0, 5)
+        .sliderRange(0, 3)
+        .build()
+    );
+    private final Setting<Keybind> facePlaceKeybind = sgCunny.add(new KeybindSetting.Builder()
+        .name("FacePlace Keybind")
+        .description("Face places when the key is pressed/")
+        .defaultValue(Keybind.none())
+        .build()
+    );
+    private final Setting<Double> minFacePlaceDmg = sgCunny.add(new DoubleSetting.Builder()
+        .name("Min FacePlace Dmg")
+        .description("Minimum damage you can do to FacePlace.")
+        .defaultValue(1.5)
+        .range(0, 5)
+        .sliderRange(0, 5)
+        .build()
+    );
+    private final Setting<Boolean> ignoreNakeds = sgCunny.add(new BoolSetting.Builder()
+        .name("Ignore Nakeds")
+        .description("Avoids attacking nakeds.")
+        .defaultValue(false)
+        .build()
+    );
+
 
     //--------------------Switch--------------------//
     private final Setting<SwitchMode> switchMode = sgSwitch.add(new EnumSetting.Builder<SwitchMode>()
@@ -661,6 +721,7 @@ public class AutoCrystalPlus extends BlackOutModule {
     private double delayTimer = 0;
     private int delayTicks = 0;
 
+    private List<BlockPos> lastPlacePositions = new ArrayList<>(5);
     private BlockPos placePos = null;
     private Direction placeDir = null;
     private Entity expEntity = null;
@@ -724,7 +785,7 @@ public class AutoCrystalPlus extends BlackOutModule {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     private void onTickPost(TickEvent.Post event) {
-        delayTicks++;
+        /*delayTicks++;
         ticksEnabled++;
         placed++;
 
@@ -758,7 +819,7 @@ public class AutoCrystalPlus extends BlackOutModule {
             if (System.currentTimeMillis() - val >= 5000)
                 toRemove.add(key);
         });
-        toRemove.forEach(own::remove);
+        toRemove.forEach(own::remove);*/
 
         if (performance.get()) updatePlacement();
     }
@@ -770,9 +831,7 @@ public class AutoCrystalPlus extends BlackOutModule {
 
         if (autoMine == null) autoMine = Modules.get().get(AutoMine.class);
 
-        suicide = Modules.get().isActive(Suicide.class);
         double delta = (System.currentTimeMillis() - lastMillis) / 1000f;
-        lastMillis = System.currentTimeMillis();
 
         cps = 0;
         synchronized (explosions) {
@@ -788,14 +847,7 @@ public class AutoCrystalPlus extends BlackOutModule {
         }
         cps /= 4.5;
 
-        attackTimer = Math.max(attackTimer - delta, 0);
-        placeTimer = Math.max(placeTimer - delta * getSpeed(), 0);
-        placeLimitTimer += delta;
-        delayTimer += delta;
-        switchTimer = Math.max(0, switchTimer - delta);
 
-        update();
-        checkDelayed();
 
         //Rendering
         if (render.get()) {
@@ -907,7 +959,7 @@ public class AutoCrystalPlus extends BlackOutModule {
         if (mc.player != null) {
             //Render extrapolation
             if (renderExt.get()) {
-                extPos.forEach((name, bb) -> {
+                new HashMap<>(extPos).forEach((name, bb) -> {
                     if (renderSelfExt.get() || !name.equals(mc.player))
                         event.renderer.box(bb, color.get(), lineColor.get(), shapeMode.get(), 0);
                 });
@@ -920,6 +972,62 @@ public class AutoCrystalPlus extends BlackOutModule {
         confirmed = event.entity.getId();
 
         if (event.entity.getBlockPos().equals(placePos)) explosions.add(System.currentTimeMillis());
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    private void onTimed(TimedEvent event) {
+        if (mc.player == null || mc.world == null) {
+            return;
+        }
+
+        // Tick
+        delayTicks++;
+        ticksEnabled++;
+        placed++;
+
+        if (autoMine == null) autoMine = Modules.get().get(AutoMine.class);
+
+        ExtrapolationUtils.extrapolateMap(extPos, player -> player == mc.player ? selfExt.get() : extrapolation.get(), player -> extSmoothness.get());
+        ExtrapolationUtils.extrapolateMap(extHitbox, player -> hitboxExtrapolation.get(), player -> extSmoothness.get());
+
+        Box rangeBox = ExtrapolationUtils.extrapolate(mc.player, rangeExtrapolation.get(), extSmoothness.get());
+        if (rangeBox == null) rangePos = mc.player.getEyePos();
+        else rangePos = new Vec3d((rangeBox.minX + rangeBox.maxX) / 2f, rangeBox.minY + mc.player.getEyeHeight(mc.player.getPose()), (rangeBox.minZ + rangeBox.maxZ) / 2f);
+
+        List<BlockPos> toRemove = new ArrayList<>();
+        existedList.forEach((key, val) -> {
+            if (System.currentTimeMillis() - val >= 5000 + existed.get() * 1000)
+                toRemove.add(key);
+        });
+        toRemove.forEach(existedList::remove);
+
+        toRemove.clear();
+        existedTicksList.forEach((key, val) -> {
+            if (ticksEnabled - val >= 100 + existedTicks.get())
+                toRemove.add(key);
+        });
+        toRemove.forEach(existedTicksList::remove);
+
+        toRemove.clear();
+        own.forEach((key, val) -> {
+            if (System.currentTimeMillis() - val >= 5000)
+                toRemove.add(key);
+        });
+        toRemove.forEach(own::remove);
+
+        // Other
+
+        double delta = (System.currentTimeMillis() - lastMillis) / 1000f;
+        lastMillis = System.currentTimeMillis();
+
+        attackTimer = Math.max(attackTimer - delta, 0);
+        placeTimer = Math.max(placeTimer - delta * getSpeed(), 0);
+        placeLimitTimer += delta;
+        delayTimer += delta;
+        switchTimer = Math.max(0, switchTimer - delta);
+        update();
+
+        checkDelayed();
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -957,7 +1065,7 @@ public class AutoCrystalPlus extends BlackOutModule {
             case Simple -> {
                 int slot = InvUtils.findInHotbar(Items.END_CRYSTAL).slot();
                 if (placePos != null && hand == null && slot >= 0) {
-                    InvUtils.swap(slot, false);
+                    BOInvUtils.swap(slot);
                     handToUse = Hand.MAIN_HAND;
                 }
             }
@@ -978,7 +1086,7 @@ public class AutoCrystalPlus extends BlackOutModule {
         }
 
         if (placePos != null && placeDir != null) {
-            if (!isPaused() && (!paPlace.get() || !Modules.get().isActive(PistonCrystal.class))) {
+            if (!isPaused()) {
                 int silentSlot = InvUtils.find(itemStack -> itemStack.getItem() == Items.END_CRYSTAL).slot();
                 int hotbar = InvUtils.findInHotbar(Items.END_CRYSTAL).slot();
                 if (handToUse != null || (switchMode.get() == SwitchMode.Silent && hotbar >= 0) || ((switchMode.get() == SwitchMode.PickSilent || switchMode.get() == SwitchMode.InvSilent) && silentSlot >= 0)) {
@@ -991,13 +1099,11 @@ public class AutoCrystalPlus extends BlackOutModule {
             }
         }
 
-        PistonCrystal pa = Modules.get().get(PistonCrystal.class);
         double[] value = null;
 
         if (!isPaused() && (hand != null || switchMode.get() == SwitchMode.Silent || switchMode.get() == SwitchMode.PickSilent || switchMode.get() == SwitchMode.InvSilent) && explode.get()) {
             for (Entity en : mc.world.getEntities()) {
                 if (!(en instanceof EndCrystalEntity)) continue;
-                if (paAttack.get() && pa.isActive() && en.getBlockPos().equals(pa.crystalPos)) continue;
                 if (inhibitList.contains(en.getId())) continue;
                 if (switchTimer > 0) continue;
 
@@ -1057,6 +1163,10 @@ public class AutoCrystalPlus extends BlackOutModule {
 
     private boolean speedCheck() {
 
+        if (alwaysPassSpeed.get()) {
+            return true;
+        }
+
         if (speedLimit.get() > 0 && placeLimitTimer < 1 / speedLimit.get())
             return false;
 
@@ -1081,6 +1191,13 @@ public class AutoCrystalPlus extends BlackOutModule {
             return;
         }
         placePos = getPlacePos();
+        if (placePos != null) {
+            lastPlacePositions.addFirst(placePos);
+        }
+
+        if (lastPlacePositions.size() >= skipLastPlaces.get()) {
+            lastPlacePositions.removeLast();
+        }
     }
 
     private void placeCrystal(BlockPos pos, Direction dir, Hand handToUse, int sl, int hsl) {
@@ -1097,9 +1214,8 @@ public class AutoCrystalPlus extends BlackOutModule {
             boolean switched = handToUse == null;
             if (switched) {
                 switch (switchMode.get()) {
-                    case PickSilent -> BOInvUtils.pickSwitch(sl);
-                    case Silent -> InvUtils.swap(hsl, true);
-                    case InvSilent -> BOInvUtils.invSwitch(sl);
+                    case Simple -> BOInvUtils.swap(hsl);
+                    case Silent -> BOInvUtils.silentSwap(hsl);
                 }
             }
 
@@ -1124,9 +1240,7 @@ public class AutoCrystalPlus extends BlackOutModule {
 
             if (switched) {
                 switch (switchMode.get()) {
-                    case PickSilent -> BOInvUtils.pickSwapBack();
-                    case Silent -> InvUtils.swapBack();
-                    case InvSilent -> BOInvUtils.swapBack();
+                    case Silent -> BOInvUtils.silentSwapBack();
                 }
             }
             if (idPredict.get()) {
@@ -1141,6 +1255,10 @@ public class AutoCrystalPlus extends BlackOutModule {
     }
 
     private boolean delayCheck() {
+        if (alwaysPassDelay.get()) {
+            return true;
+        }
+
         if (placeDelayMode.get() == DelayMode.Seconds)
             return delayTimer >= placeDelay.get();
         return delayTicks >= placeDelayTicks.get();
@@ -1283,6 +1401,20 @@ public class AutoCrystalPlus extends BlackOutModule {
                     // Calculates damages and healths
                     double[][] result = getDmg(new Vec3d(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5), false);
 
+                    for (BlockPos blockPos : lastPlacePositions) {
+                        if (blockPos == null) {
+                            break;
+                        }
+
+                        if (blockPos.equals(pos)) {
+                            int i = 0;
+                            for (double res : result[0]) {
+                                result[0][i] = res / reduceLastPlace.get();
+                                i++;
+                            }
+                        }
+                    }
+
                     // Checks if damages are valid
                     if (!placeDamageCheck(result[0], result[1], highest)) continue;
 
@@ -1319,6 +1451,10 @@ public class AutoCrystalPlus extends BlackOutModule {
         if (health[1] >= 0 && dmg[1] * antiFriendPop.get() >= health[1]) return false;
         if (health[0] >= 0 && dmg[0] * forcePop.get() >= health[0]) return true;
 
+        if ((facePlaceKeybind.get().isPressed() || alwaysFacePlace.get()) && dmg[0] >= minFacePlaceDmg.get()) {
+            return true;
+        }
+
         //  Min Damage
         if (dmg[0] < minPlace.get()) return false;
 
@@ -1346,6 +1482,10 @@ public class AutoCrystalPlus extends BlackOutModule {
         if (checkOwn) {
             if (playerHP >= 0 && dmg[2] * forcePop.get() >= playerHP) return false;
             if (health[1] >= 0 && dmg[1] * antiFriendPop.get() >= health[1]) return false;
+        }
+
+        if ((facePlaceKeybind.get().isPressed() || alwaysFacePlace.get()) && dmg[0] >= minFacePlaceDmg.get()) {
+            return true;
         }
 
         if (checkDmg) {
@@ -1387,6 +1527,18 @@ public class AutoCrystalPlus extends BlackOutModule {
             AbstractClientPlayerEntity player = entry.getKey();
             Box box = entry.getValue();
             if (player.getHealth() <= 0 || player == mc.player) continue;
+
+            int missingArmorPieces = 4;
+
+            for (ItemStack stack : BODamageUtils.getEquipment(player)) {
+                if (stack.getItem() != Items.AIR) {
+                    missingArmorPieces--;
+                }
+            }
+
+            if (missingArmorPieces == 4 && ignoreNakeds.get() && player.getOffHandStack().getItem() != Items.TOTEM_OF_UNDYING) {
+                continue;
+            }
 
             double dmg = BODamageUtils.crystalDamage(player, box, vec, ignorePos(attack), ignoreTerrain.get());
             if (BlockPos.ofFloored(vec).down().equals(autoMine.targetPos()))

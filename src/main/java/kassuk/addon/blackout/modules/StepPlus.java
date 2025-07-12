@@ -160,7 +160,7 @@ public class StepPlus extends BlackOutModule {
         double offset = 0;
         for (double v : offsets) {
             offset += v;
-            sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(mc.player.getX(), mc.player.getY() + offset, mc.player.getZ(), false));
+            sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(mc.player.getX(), mc.player.getY() + offset, mc.player.getZ(), false, mc.player.horizontalCollision));
         }
         lastStep = System.currentTimeMillis();
     }

@@ -6,42 +6,29 @@ https://github.com/MeteorDevelopment/meteor-client/blob/master/src/main/java/met
 package kassuk.addon.blackout.utils.meteor;
 
 import kassuk.addon.blackout.utils.OLEPOSSUtils;
-import kassuk.addon.blackout.utils.SettingUtils;
 import meteordevelopment.meteorclient.MeteorClient;
 import meteordevelopment.meteorclient.events.game.GameJoinedEvent;
-import meteordevelopment.meteorclient.mixininterface.IExplosion;
 import meteordevelopment.meteorclient.mixininterface.IRaycastContext;
-import meteordevelopment.meteorclient.mixininterface.IVec3d;
 import meteordevelopment.meteorclient.utils.PreInit;
-import meteordevelopment.meteorclient.utils.entity.EntityUtils;
-import meteordevelopment.meteorclient.utils.entity.fakeplayer.FakePlayerEntity;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.component.type.ItemEnchantmentsComponent;
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.*;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.effect.StatusEffects;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.nbt.NbtList;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.*;
 import net.minecraft.util.shape.VoxelShape;
-import net.minecraft.util.shape.VoxelShapes;
 import net.minecraft.world.BlockView;
 import net.minecraft.world.Difficulty;
-import net.minecraft.world.GameMode;
 import net.minecraft.world.RaycastContext;
-import net.minecraft.world.explosion.Explosion;
 import org.apache.commons.lang3.mutable.MutableInt;
 
-import java.util.Objects;
+import java.util.List;
 
 import static meteordevelopment.meteorclient.MeteorClient.mc;
 
@@ -107,6 +94,10 @@ public class BODamageUtils {
         return damage;
     }
 
+    public static List<ItemStack> getEquipment(LivingEntity entity) {
+        return List.of(entity.getEquippedStack(EquipmentSlot.HEAD), entity.getEquippedStack(EquipmentSlot.CHEST), entity.getEquippedStack(EquipmentSlot.LEGS), entity.getEquippedStack(EquipmentSlot.FEET));
+    }
+
     public static int getProtectionAmount(Iterable<ItemStack> equipment, boolean explosion) {
         MutableInt mint = new MutableInt();
 
@@ -136,10 +127,14 @@ public class BODamageUtils {
     }
 
     public static double applyArmor(LivingEntity entity, double damage) {
-        double armor = entity.getArmor();
-        double f = 2 + entity.getAttributeValue(EntityAttributes.GENERIC_ARMOR_TOUGHNESS) / 4;
+        try {
+            double armor = entity.getArmor();
+            double f = 2 + entity.getAttributeValue(EntityAttributes.ARMOR_TOUGHNESS) / 4;
 
-        return damage * (1 - MathHelper.clamp(armor - damage / f, armor * 0.2, 20) / 25);
+            return damage * (1 - MathHelper.clamp(armor - damage / f, armor * 0.2, 20) / 25);
+        } catch (NullPointerException exception) {
+            return 0;
+        }
     }
 
     public static double applyResistance(LivingEntity entity, double damage) {
@@ -150,7 +145,7 @@ public class BODamageUtils {
     }
 
     public static double applyProtection(LivingEntity entity, double damage, boolean explosions) {
-        int i = getProtectionAmount(entity.getArmorItems(), explosions);
+        int i = getProtectionAmount(getEquipment(entity), explosions);
         if (i > 0)
             damage *= (1 - MathHelper.clamp(i, 0f, 20f) / 25);
 
@@ -166,7 +161,7 @@ public class BODamageUtils {
     }
 
     public static double getExposure(Vec3d source, Box box, BlockPos ignorePos, BlockPos obbyPos, boolean ignoreTerrain) {
-        ((IRaycastContext) raycastContext).set(source, null, RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, mc.player);
+        ((IRaycastContext) raycastContext).meteor$set(source, null, RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, mc.player);
 
         double lx = box.getLengthX();
         double ly = box.getLengthY();
@@ -193,7 +188,7 @@ public class BODamageUtils {
                 for (double z = box.minZ + offsetZ, maxZ = box.maxZ + offsetZ; z <= maxZ; z += stepZ) {
                     Vec3d vec3d = new Vec3d(x, y, z);
 
-                    ((IRaycastContext) raycastContext).set(source, vec3d, RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, mc.player);
+                    ((IRaycastContext) raycastContext).meteor$set(source, vec3d, RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, mc.player);
                     if (raycast(BODamageUtils.raycastContext, ignorePos, obbyPos, ignoreTerrain).getType() == HitResult.Type.MISS) ++i;
 
                     ++j;

@@ -203,12 +203,12 @@ public class HoleSnap extends BlackOutModule {
                     if (mc.player.getY() == hole.middle.y) {
                         this.toggle();
                         sendDisableMsg("in hole");
-                        ((IVec3d) event.movement).setXZ(0, 0);
+                        ((IVec3d) event.movement).meteor$setXZ(0, 0);
                     } else if (OLEPOSSUtils.inside(mc.player, mc.player.getBoundingBox().offset(0, -0.05, 0))) {
                         this.toggle();
                         sendDisableMsg("hole unreachable");
                     } else {
-                        ((IVec3d) event.movement).setXZ(0, 0);
+                        ((IVec3d) event.movement).meteor$setXZ(0, 0);
                     }
                 } else {
                     double x = getSpeed() * yaw;
@@ -229,10 +229,10 @@ public class HoleSnap extends BlackOutModule {
                         ticks--;
                     } else if (OLEPOSSUtils.inside(mc.player, mc.player.getBoundingBox().offset(0, -0.05, 0)) && jump.get()) {
                         ticks = jumpCoolDown.get();
-                        ((IVec3d) event.movement).setY(0.42);
+                        ((IVec3d) event.movement).meteor$setY(0.42);
                     }
                     boostLeft--;
-                    ((IVec3d) event.movement).setXZ(Math.abs(x) < Math.abs(dX) ? x : dX, Math.abs(z) < Math.abs(dZ) ? z : dZ);
+                    ((IVec3d) event.movement).meteor$setXZ(Math.abs(x) < Math.abs(dX) ? x : dX, Math.abs(z) < Math.abs(dZ) ? z : dZ);
                 }
             } else {
                 this.toggle();

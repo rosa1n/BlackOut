@@ -6,6 +6,7 @@ import kassuk.addon.blackout.enums.RotationType;
 import kassuk.addon.blackout.enums.SwingHand;
 import kassuk.addon.blackout.enums.SwingState;
 import kassuk.addon.blackout.enums.SwingType;
+import kassuk.addon.blackout.events.TimedEvent;
 import kassuk.addon.blackout.managers.Managers;
 import kassuk.addon.blackout.timers.TimerList;
 import kassuk.addon.blackout.utils.*;
@@ -40,6 +41,7 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.math.*;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
@@ -307,9 +309,7 @@ public class Blocker extends BlackOutModule {
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
-    private void onRender(Render3DEvent event) {
-        placed.update();
-
+    private void onTimed(TimedEvent event) {
         if (mc.player == null || mc.world == null) return;
 
         timer += (System.currentTimeMillis() - lastTime) / 1000d;
@@ -328,9 +328,16 @@ public class Blocker extends BlackOutModule {
         }
 
         updatePlacing();
+    }
+
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    private void onRender(Render3DEvent event) {
+        placed.update();
+
+        if (mc.player == null || mc.world == null) return;
 
         render.removeIf(r -> System.currentTimeMillis() - r.time > 1000);
-
         render.forEach(r -> {
             double progress = 1 - Math.min(System.currentTimeMillis() - r.time, 500) / 500d;
 
@@ -368,8 +375,6 @@ public class Blocker extends BlackOutModule {
         if (switched && hand == null) {
             switch (switchMode.get()) {
                 case Silent -> InvUtils.swapBack();
-                case PickSilent -> BOInvUtils.pickSwapBack();
-                case InvSwitch -> BOInvUtils.swapBack();
             }
         }
     }
@@ -440,7 +445,8 @@ public class Blocker extends BlackOutModule {
         Entity crystal = null;
         double lowest = 1000;
 
-        for (Entity entity : mc.world.getEntities()) {
+        for (Iterator<Entity> it = mc.world.getEntities().iterator(); it.hasNext(); ) {
+            Entity entity = it.next();
             if (!(entity instanceof EndCrystalEntity)) continue;
             if (mc.player.distanceTo(entity) > 5) continue;
             if (!SettingUtils.inAttackRange(entity.getBoundingBox())) continue;
@@ -516,8 +522,6 @@ public class Blocker extends BlackOutModule {
                     InvUtils.swap(result.slot(), true);
                     switched = true;
                 }
-                case PickSilent -> switched = BOInvUtils.pickSwitch(result.slot());
-                case InvSwitch -> switched = BOInvUtils.invSwitch(result.slot());
             }
         }
 
@@ -542,7 +546,6 @@ public class Blocker extends BlackOutModule {
         if (!(item instanceof BlockItem block)) {return;}
 
         mc.world.setBlockState(pos, block.getBlock().getDefaultState());
-        mc.world.playSound(pos.getX(), pos.getY(), pos.getZ(), SoundEvents.BLOCK_STONE_PLACE, SoundCategory.BLOCKS, 1, 1, false);
     }
 
     private boolean shouldProtect(ProtectBlock p) {
@@ -670,7 +673,7 @@ public class Blocker extends BlackOutModule {
 
     private boolean containsPos(BlockPos pos) {
         for (MineStart m : mining) {
-            if (System.currentTimeMillis() > m.time + mineTime.get() * 1000 && m.pos.equals(pos)) return true;
+            if (m.time > 0 && m.pos.equals(pos)) return true;
         }
         return false;
     }

@@ -108,7 +108,7 @@ public class AutoPearl extends BlackOutModule {
 
 
         if (instaRot.get()) {
-            sendPacket(new PlayerMoveC2SPacket.LookAndOnGround(getYaw(), pitch.get(), Managers.ON_GROUND.isOnGround()));
+            sendPacket(new PlayerMoveC2SPacket.LookAndOnGround(getYaw(), pitch.get(), Managers.ON_GROUND.isOnGround(), mc.player.horizontalCollision));
         }
 
         boolean switched = hand != null;
@@ -119,8 +119,6 @@ public class AutoPearl extends BlackOutModule {
                     InvUtils.swap(InvUtils.findInHotbar(Items.ENDER_PEARL).slot(), true);
                     switched = true;
                 }
-                case PickSilent -> switched = BOInvUtils.pickSwitch(InvUtils.find(Items.ENDER_PEARL).slot());
-                case InvSwitch -> switched = BOInvUtils.invSwitch(InvUtils.find(Items.ENDER_PEARL).slot());
             }
         }
 
@@ -139,8 +137,6 @@ public class AutoPearl extends BlackOutModule {
         if (hand == null) {
             switch (switchMode.get()) {
                 case Silent -> InvUtils.swapBack();
-                case PickSilent -> BOInvUtils.pickSwapBack();
-                case InvSwitch -> BOInvUtils.swapBack();
             }
         }
     }
@@ -161,7 +157,7 @@ public class AutoPearl extends BlackOutModule {
         if (!rotated) return false;
 
         if (instaRot.get())
-            sendPacket(new PlayerMoveC2SPacket.LookAndOnGround((float) RotationUtils.getYaw(mc.player.getEyePos(), pos.toCenterPos()), (float) RotationUtils.getPitch(mc.player.getEyePos(), pos.toCenterPos()), Managers.ON_GROUND.isOnGround()));
+            sendPacket(new PlayerMoveC2SPacket.LookAndOnGround((float) RotationUtils.getYaw(mc.player.getEyePos(), pos.toCenterPos()), (float) RotationUtils.getPitch(mc.player.getEyePos(), pos.toCenterPos()), Managers.ON_GROUND.isOnGround(), mc.player.horizontalCollision));
 
         Hand hand = mc.player.getOffHandStack().getItem() instanceof BlockItem ? Hand.OFF_HAND :
             Managers.HOLDING.getStack().getItem() instanceof BlockItem ? Hand.MAIN_HAND : null;
@@ -174,10 +170,6 @@ public class AutoPearl extends BlackOutModule {
                     InvUtils.swap(InvUtils.findInHotbar(item -> item.getItem() instanceof BlockItem).slot(), true);
                     switched = true;
                 }
-                case PickSilent ->
-                    switched = BOInvUtils.pickSwitch(InvUtils.find(item -> item.getItem() instanceof BlockItem).slot());
-                case InvSwitch ->
-                    switched = BOInvUtils.invSwitch(InvUtils.find(item -> item.getItem() instanceof BlockItem).slot());
             }
         }
 
@@ -191,8 +183,6 @@ public class AutoPearl extends BlackOutModule {
         if (hand == null) {
             switch (ccSwitchMode.get()) {
                 case Silent -> InvUtils.swapBack();
-                case PickSilent -> BOInvUtils.pickSwapBack();
-                case InvSwitch -> BOInvUtils.swapBack();
             }
         }
 

@@ -8,6 +8,7 @@ import meteordevelopment.meteorclient.systems.hud.HudElementInfo;
 import meteordevelopment.meteorclient.systems.hud.HudRenderer;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.item.ItemStack;
 
 import static meteordevelopment.meteorclient.MeteorClient.mc;
@@ -61,6 +62,8 @@ public class ArmorHudPlus extends HudElement {
         .build()
     );
 
+    private static final EquipmentSlot[] EQUIPMENT_SLOTS = new EquipmentSlot[]{EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET};
+
     public static final HudElementInfo<ArmorHudPlus> INFO = new HudElementInfo<>(BlackOut.HUD_BLACKOUT, "ArmorHud+", "A target hud the fuck you thinkin bruv.", ArmorHudPlus::new);
 
     public ArmorHudPlus() {
@@ -77,18 +80,16 @@ public class ArmorHudPlus extends HudElement {
         stack.translate(x, y, 0);
         stack.scale((float)(scale.get() * 2), (float)(scale.get() * 2), 1);
 
-        if (bg.get()) {
-            RenderUtils.rounded(stack, rounding.get() * 0.14f, rounding.get() * 0.14f, 100 - rounding.get() * 0.28f, 28 - rounding.get() * 0.28f, rounding.get() * 0.14f, 10, bgColor.get().getPacked());
-        }
-
         MatrixStack drawStack = renderer.drawContext.getMatrices();
         drawStack.push();
 
         drawStack.translate(x, y, 0);
         drawStack.scale((float)(scale.get() * 2), (float)(scale.get() * 2), 1);
 
-        for (int i = 3; i >= 0; i--) {
-            ItemStack itemStack = mc.player.getInventory().armor.get(i);
+        int i = 0;
+
+        for (var slot : EQUIPMENT_SLOTS) {
+            ItemStack itemStack = mc.player.getEquippedStack(slot);
 
             renderer.drawContext.drawItem(itemStack, i * 20 + 12, durMode.get() == DurMode.Top ? 10 : 0);
 
@@ -97,6 +98,7 @@ public class ArmorHudPlus extends HudElement {
             centeredText(stack,
                 String.valueOf(Math.round(100 - (float) itemStack.getDamage() / itemStack.getMaxDamage() * 100f)),
                 i * 20 + 20, durMode.get() == DurMode.Top ? 3 : 17, durColor.get().getPacked());
+            i++;
         }
         drawStack.pop();
     }

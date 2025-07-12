@@ -300,10 +300,6 @@ public class SelfTrapPlus extends BlackOutModule {
                                     obsidian = hotbar.count();
                                     InvUtils.swap(hotbar.slot(), true);
                                 }
-                                case PickSilent ->
-                                    obsidian = BOInvUtils.pickSwitch(inventory.slot()) ? inventory.count() : -1;
-                                case InvSwitch ->
-                                    obsidian = BOInvUtils.invSwitch(inventory.slot()) ? inventory.count() : -1;
                             }
                         }
 
@@ -328,8 +324,6 @@ public class SelfTrapPlus extends BlackOutModule {
                         if (hand == null) {
                             switch (switchMode.get()) {
                                 case Silent -> InvUtils.swapBack();
-                                case PickSilent -> BOInvUtils.pickSwapBack();
-                                case InvSwitch -> BOInvUtils.swapBack();
                             }
                         }
                     }

@@ -24,17 +24,4 @@ public abstract class MixinPlayerEntity {
     private void inject(Entity target, CallbackInfo ci) {
         attackEntity = target;
     }
-
-    @Redirect(method = "attack", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/World;playSound(Lnet/minecraft/entity/player/PlayerEntity;DDDLnet/minecraft/sound/SoundEvent;Lnet/minecraft/sound/SoundCategory;FF)V"))
-    private void poseNotCollide(World instance, PlayerEntity except, double x, double y, double z, SoundEvent sound, SoundCategory category, float volume, float pitch) {
-        SoundModifier m = Modules.get().get(SoundModifier.class);
-
-        if (m.isActive()) {
-            if (m.crystalHits.get()) {
-                instance.playSound(except, x, y, z, sound, category, (float) (volume * m.crystalHitVolume.get()), (float) (pitch * m.crystalHitPitch.get()));
-            }
-            return;
-        }
-        instance.playSound(except, x, y, z, sound, category, volume, pitch);
-    }
 }

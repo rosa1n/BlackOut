@@ -320,11 +320,9 @@ public class AnchorAuraRewrite extends BlackOutModule {
         if (hand == null) {
             switch (switchMode.get()) {
                 case Silent, Normal -> {
-                    InvUtils.swap(result.slot(), true);
+                    BOInvUtils.swap(result.slot());
                     switched = true;
                 }
-                case PickSilent -> switched = BOInvUtils.pickSwitch(result.slot());
-                case InvSwitch -> switched = BOInvUtils.invSwitch(result.slot());
             }
         }
 
@@ -346,8 +344,6 @@ public class AnchorAuraRewrite extends BlackOutModule {
         if (switched) {
             switch (switchMode.get()) {
                 case Silent -> InvUtils.swapBack();
-                case PickSilent -> BOInvUtils.pickSwapBack();
-                case InvSwitch -> BOInvUtils.swapBack();
             }
         }
     }
@@ -411,8 +407,6 @@ public class AnchorAuraRewrite extends BlackOutModule {
                     InvUtils.swap(glowResult.slot(), true);
                     switched = true;
                 }
-                case PickSilent -> switched = BOInvUtils.pickSwitch(glowResult.slot());
-                case InvSwitch -> switched = BOInvUtils.invSwitch(glowResult.slot());
             }
         }
 
@@ -429,8 +423,6 @@ public class AnchorAuraRewrite extends BlackOutModule {
         if (switched) {
             switch (switchMode.get()) {
                 case Silent -> InvUtils.swapBack();
-                case PickSilent -> BOInvUtils.pickSwapBack();
-                case InvSwitch -> BOInvUtils.swapBack();
             }
         }
 
@@ -439,11 +431,9 @@ public class AnchorAuraRewrite extends BlackOutModule {
         if (explodeHand == null) {
             switch (switchMode.get()) {
                 case Silent, Normal -> {
-                    InvUtils.swap(explodeResult.slot(), true);
+                    BOInvUtils.swap(explodeResult.slot());
                     switched = true;
                 }
-                case PickSilent -> switched = BOInvUtils.pickSwitch(explodeResult.slot());
-                case InvSwitch -> switched = BOInvUtils.invSwitch(explodeResult.slot());
             }
         }
 

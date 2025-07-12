@@ -1,6 +1,7 @@
 package kassuk.addon.blackout.utils;
 
 import kassuk.addon.blackout.mixins.IBlockSettings;
+import kassuk.addon.blackout.utils.meteor.BODamageUtils;
 import meteordevelopment.meteorclient.mixin.AbstractBlockAccessor;
 import net.minecraft.block.*;
 import net.minecraft.component.type.ItemEnchantmentsComponent;
@@ -29,7 +30,7 @@ public class OLEPOSSUtils {
     }
 
     public static boolean hasAquaAffinity(LivingEntity entity) {
-        for (ItemStack stack : entity.getArmorItems()) {
+        for (ItemStack stack : BODamageUtils.getEquipment(entity)) {
             if (hasEnchantment(Enchantments.AQUA_AFFINITY, stack)) return true;
         }
         return false;
